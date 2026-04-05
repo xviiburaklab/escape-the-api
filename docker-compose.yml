@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: escape123
+      POSTGRES_DB: escape_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./escape_api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:escape123@db:5432/escape_db
+      ADMIN_KEY: ${ADMIN_KEY:-change-me-in-production}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      SESSION_REQUEST_LIMIT: ${SESSION_REQUEST_LIMIT:-150}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+
+volumes:
+  postgres_data:
